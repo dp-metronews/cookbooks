@@ -28,7 +28,8 @@ server {
     client_max_body_size <%= @application[:nginx][:client_max_body_size] %>;
   <% end %>
   
-  location = /health_check {
+  location = /health-check {
+	access_log off
     return 200;
   }  
 
