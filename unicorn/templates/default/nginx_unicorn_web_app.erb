@@ -12,12 +12,6 @@ server {
   listen 80;
   server_name <%= @application[:domains].join(" ") %> <%= node[:hostname] %>;
   
-  location / {
-	if ($http_x_forwarded_proto != 'https') {
-		rewrite ^ https://$host$request_uri? permanent;
-	} 
-  }  
-
   <% if @application[:log_format] %>
     <% @application[:log_format].each do |log_format_name| %>
   access_log <%= node[:nginx][:log_dir] %>/<%= @application[:domains].first %>.access.<%= log_format_name %>.log <%= log_format_name %>;
@@ -36,6 +30,9 @@ server {
 
   location / {
     try_files $uri/index.html $uri/index.htm @unicorn;
+	if ($http_x_forwarded_proto != 'https') {
+		rewrite ^ https://$host$request_uri? permanent;
+	} 	
   }
 
   location @unicorn {
