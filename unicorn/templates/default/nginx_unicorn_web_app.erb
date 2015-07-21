@@ -12,6 +12,12 @@ server {
   listen 80;
   server_name <%= @application[:domains].join(" ") %> <%= node[:hostname] %>;
   
+  location / {
+	if ($http_x_forwarded_proto != 'https') {
+		rewrite ^ https://$host$request_uri? permanent;
+	} 
+  }  
+
   <% if @application[:log_format] %>
     <% @application[:log_format].each do |log_format_name| %>
   access_log <%= node[:nginx][:log_dir] %>/<%= @application[:domains].first %>.access.<%= log_format_name %>.log <%= log_format_name %>;
@@ -69,19 +75,6 @@ server {
     add_header  ETag "";
     break;
   }
-  
-  location ~* \.(eot|ttf|woff|ico)$ {
-    gzip_static on;
-    expires     max;
-    add_header  Cache-Control public;
-    add_header  Access-Control-Allow-Origin *;
-  }  
-  
-  location ~* ^/images/.*\.(jpg|jpeg|png|gif|ico|svg)$ {
-    gzip_static on;
-    expires     max;
-    add_header  Cache-Control public;
-  }  
 
   error_page 500 502 503 504 /500.html;
   location = /500.html {
