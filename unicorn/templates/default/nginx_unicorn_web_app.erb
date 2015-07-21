@@ -83,11 +83,3 @@ server {
     root <%= @application[:absolute_document_root] %>;
   }
 }
-
-server {
-    listen 81; 
-    server_name _;
-	access_log off;
-
-    return 200; # Not much magic.
-}
