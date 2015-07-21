@@ -28,11 +28,6 @@ server {
     client_max_body_size <%= @application[:nginx][:client_max_body_size] %>;
   <% end %>
   
-  location = /health-check {
-	access_log off;
-    return 200;
-  }  
-
   location / {
     try_files $uri/index.html $uri/index.htm @unicorn;
 	
@@ -83,4 +78,12 @@ server {
   location = /500.html {
     root <%= @application[:absolute_document_root] %>;
   }
+}
+
+server {
+    listen 81; # What about using a different port for ELB ping?
+    server_name _; # Match all if the listen port is unique,
+    #server_name elb-instance-name; # Or match a specific name.
+
+    return 200; # Not much magic.
 }
