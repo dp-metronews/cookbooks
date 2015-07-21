@@ -71,6 +71,19 @@ server {
     add_header  ETag "";
     break;
   }
+  
+  location ~* \.(eot|ttf|woff|ico)$ {
+    gzip_static on;
+    expires     max;
+    add_header  Cache-Control public;
+    add_header  Access-Control-Allow-Origin *;
+  }  
+  
+  location ~* ^/images/.*\.(jpg|jpeg|png|gif|ico|svg)$ {
+    gzip_static on;
+    expires     max;
+    add_header  Cache-Control public;
+  }  
 
   error_page 500 502 503 504 /500.html;
   location = /500.html {
