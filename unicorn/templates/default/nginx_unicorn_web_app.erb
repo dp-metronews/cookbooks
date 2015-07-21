@@ -11,6 +11,8 @@ upstream unicorn_<%= @application[:domains].first %> {
 server {
   listen 80;
   server_name <%= @application[:domains].join(" ") %> <%= node[:hostname] %>;
+  
+  return 301 https://$host$request_uri;
 
   <% if @application[:log_format] %>
     <% @application[:log_format].each do |log_format_name| %>
