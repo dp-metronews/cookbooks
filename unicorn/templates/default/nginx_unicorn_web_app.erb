@@ -81,9 +81,9 @@ server {
 }
 
 server {
-    listen 81; # What about using a different port for ELB ping?
-    server_name _; # Match all if the listen port is unique,
-    #server_name elb-instance-name; # Or match a specific name.
+    listen 81; 
+    server_name _;
+	access_log off;
 
     return 200; # Not much magic.
 }
