@@ -71,6 +71,9 @@ server {
     add_header  Cache-Control public;
     add_header  Last-Modified "";
     add_header  ETag "";
+    if ($request_filename ~* ^.*?\.(eot)|(ttf)|(woff)|(svg)|(otf)$) {
+       add_header Access-Control-Allow-Origin *;
+    }		
     break;
   }
   
