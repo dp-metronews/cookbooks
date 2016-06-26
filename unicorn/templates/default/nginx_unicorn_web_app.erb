@@ -8,84 +8,123 @@ upstream unicorn_<%= @application[:domains].first %> {
  server unix:<%= @application[:deploy_to]%>/shared/sockets/unicorn.sock fail_timeout=0;
 }
 
-server {
-  listen 80;
-  server_name <%= @application[:domains].join(" ") %> <%= node[:hostname] %>;
-  
-  <% if @application[:log_format] %>
-    <% @application[:log_format].each do |log_format_name| %>
-  access_log <%= node[:nginx][:log_dir] %>/<%= @application[:domains].first %>.access.<%= log_format_name %>.log <%= log_format_name %>;
-    <% end %>
-  <% else %>
-  access_log <%= node[:nginx][:log_dir] %>/<%= @application[:domains].first %>.access.log;
-  <%end %>
+worker_processes  2;
 
-  keepalive_timeout 5;
+timer_resolution  500ms;
 
-  root <%= @application[:absolute_document_root] %>;
-  gzip on;
-  gzip_http_version 1.1;
-  gzip_vary on;
-  gzip_comp_level 6;
-  gzip_proxied any;
-  gzip_types text/plain text/html text/css application/json application/javascript application/x-javascript text/javascript text/xml application/xml application/rss+xml application/atom+xml application/rdf+xml;
-  
+events {
+    use epoll;
+    worker_connections 65536;
+    multi_accept on;
+}
 
-  <% if @application[:nginx] && @application[:nginx][:client_max_body_size] %>
-    client_max_body_size <%= @application[:nginx][:client_max_body_size] %>;
-  <% end %>
-  
-  location / {
-    try_files $uri/index.html $uri/index.htm @unicorn;
+http {
+    keepalive_timeout 65;
+    keepalive_requests 100000;
+    sendfile         on;
+    tcp_nopush       on;
+    tcp_nodelay      on;
 
-  }
+    client_body_buffer_size    128k;
+    client_max_body_size       10m;
+    client_header_buffer_size    1k;
+    large_client_header_buffers  4 4k;
+    output_buffers   1 32k;
+    postpone_output  1460;
 
-  location @unicorn {
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header Host $http_host;
-    proxy_redirect off;	
+    client_header_timeout  3m;
+    client_body_timeout    3m;
+    send_timeout           3m;
 
-    proxy_read_timeout 600;
-    proxy_send_timeout 600;
+    open_file_cache max=1000 inactive=20s;
+    open_file_cache_valid 30s;
+    open_file_cache_min_uses 5;
+    open_file_cache_errors off;
 
-    # If you don't find the filename in the static files
-    # Then request it from the unicorn server
-    if (!-f $request_filename) {
-      proxy_pass http://unicorn_<%= @application[:domains].first %>;
+    gzip on;
+    gzip_min_length  1000;
+    gzip_buffers     4 4k;
+    gzip_types       text/html application/x-javascript text/css application/javascript text/javascript text/plain text/xml application/json application/vnd.ms-fontobject application/x-font-opentype application/x-font-truetype application/x-font-ttf application/xml font/eot font/opentype font/otf image/svg+xml image/vnd.microsoft.icon;
+    gzip_disable "MSIE [1-6]\.";
+
+    # [ debug | info | notice | warn | error | crit | alert | emerg ]
+    error_log  /var/log/nginx.error_log  warn;
+
+    log_format main      '$remote_addr - $remote_user [$time_local]  '
+      '"$request" $status $bytes_sent '
+      '"$http_referer" "$http_user_agent" '
+  		'"$gzip_ratio"';
+
+    log_format download  '$remote_addr - $remote_user [$time_local]  '
+      '"$request" $status $bytes_sent '
+      '"$http_referer" "$http_user_agent" '
+  		'"$http_range" "$sent_http_content_range"';
+
+    map $status $loggable {
+        ~^[23]  0;
+        default 1;
+    }
+
+  server {
+    listen 80;
+    server_name <%= @application[:domains].join(" ") %> <%= node[:hostname] %>;
+    access_log  off;
+    error_log off;
+
+    root <%= @application[:absolute_document_root] %>;
+
+    location / {
+      try_files $uri/index.html $uri/index.htm @unicorn;
+
+    }
+
+    location @unicorn {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_redirect off;
+
+      proxy_read_timeout 600;
+      proxy_send_timeout 600;
+
+      # If you don't find the filename in the static files
+      # Then request it from the unicorn server
+      if (!-f $request_filename) {
+        proxy_pass http://unicorn_<%= @application[:domains].first %>;
+        break;
+      }
+    }
+
+    location /nginx_status {
+      stub_status on;
+      access_log off;
+      allow 127.0.0.1;
+      deny all;
+    }
+
+    # WCK Give static assets a far-future header and serve the pre-compressed version
+    # of the asset instead of compressing on the fly.
+    location ~ ^/assets/.*-(.*)\..* {
+      #gzip_static on;
+      expires     max;
+      add_header  Cache-Control public;
+      add_header  Last-Modified "";
+      add_header  ETag "";
+      if ($request_filename ~* ^.*?\.(eot)|(ttf)|(woff)|(svg)|(otf)$) {
+         add_header Access-Control-Allow-Origin *;
+      }
       break;
     }
-  }
 
-  location /nginx_status {
-    stub_status on;
-    access_log off;
-    allow 127.0.0.1;
-    deny all;
-  }
-
-  # WCK Give static assets a far-future header and serve the pre-compressed version
-  # of the asset instead of compressing on the fly.
-  location ~ ^/assets/.*-(.*)\..* { 
-    #gzip_static on;
-    expires     max;
-    add_header  Cache-Control public;
-    add_header  Last-Modified "";
-    add_header  ETag "";
-    if ($request_filename ~* ^.*?\.(eot)|(ttf)|(woff)|(svg)|(otf)$) {
-       add_header Access-Control-Allow-Origin *;
-    }		
-    break;
-  }
-  
-  location ~* ^/images/.*\.(jpg|jpeg|png|gif|ico|svg)$ {
-    #gzip_static on;
-    expires     max;
-    add_header  Cache-Control public;
-  }
+    location ~* ^/images/.*\.(jpg|jpeg|png|gif|ico|svg)$ {
+      #gzip_static on;
+      expires     max;
+      add_header  Cache-Control public;
+    }
 
 
-  error_page 500 502 503 504 /500.html;
-  location = /500.html {
-    root <%= @application[:absolute_document_root] %>;
+    error_page 500 502 503 504 /500.html;
+    location = /500.html {
+      root <%= @application[:absolute_document_root] %>;
+    }
   }
 }
