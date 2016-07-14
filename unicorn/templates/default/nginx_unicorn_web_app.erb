@@ -4,6 +4,9 @@
 # See http://docs.aws.amazon.com/opsworks/latest/userguide/workinglayers-rails.html
 # Can be removed after https://github.com/aws/opsworks-cookbooks/pull/231 or equivalent is merged.
 
+real_ip_header X-Forwarded-For;
+set_real_ip_from 0.0.0.0/0;
+
 upstream unicorn_<%= @application[:domains].first %> {
  server unix:<%= @application[:deploy_to]%>/shared/sockets/unicorn.sock fail_timeout=0;
 }
