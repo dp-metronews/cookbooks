@@ -22,5 +22,6 @@ cookbook_file "/etc/fail2ban/jail.local" do
   source "jail.local"
 end
 service 'fail2ban' do
-  action [ :enable, :start ]
+  supports :status => true, :start => true, :stop => true, :restart => true, :reload => true
+  action [ :enable, :start, :reload ]
 end
