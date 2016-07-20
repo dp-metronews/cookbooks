@@ -21,6 +21,6 @@ COUNTRY=":flag-$COUNTRY:"
 # replace _country_ template to the country emoji
 MESSAGE="${MESSAGE/_country_/$COUNTRY}"
 
-curl -X POST --data-urlencode "payload={\"text\": \"[${HOST}] ${MESSAGE}\"" ${HOOK_URL}
+curl -X POST --data-urlencode "payload={\"text\": \"[${HOST}] ${MESSAGE}\"}" ${HOOK_URL}
 
 exit 0
