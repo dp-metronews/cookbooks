@@ -10,7 +10,6 @@ package 'fail2ban' do
   action :install
 end
 service 'fail2ban' do
-  supports :status => true, :start => true, :stop => true, :restart => true, :reload => true
   action [ :enable, :start ]
 end
 remote_directory "/etc/fail2ban/action.d" do
@@ -26,7 +25,5 @@ cookbook_file "/etc/fail2ban/jail.local" do
   source "jail.local"
 end
 service 'fail2ban' do
-  supports :status => true, :start => true, :stop => true, :restart => true, :reload => true
-  reload_command "service fail2ban reload"
-  action [ :reload ]
+  action [ :restart ]
 end
