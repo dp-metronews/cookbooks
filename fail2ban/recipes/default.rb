@@ -27,5 +27,6 @@ cookbook_file "/etc/fail2ban/jail.local" do
 end
 service 'fail2ban' do
   supports :status => true, :start => true, :stop => true, :restart => true, :reload => true
+  reload_command "service fail2ban reload"
   action [ :reload ]
 end
