@@ -26,7 +26,7 @@ ignoreip = 127.0.0.1/8
            199.27.128.0/21
 
 # "bantime" is the number of seconds that a host is banned.
-bantime  = 600
+bantime  = 86400
 
 # Action that will be taking when banning an IP
 banaction = iptables-proxy
