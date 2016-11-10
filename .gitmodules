@@ -1,0 +1,3 @@
+[submodule "sidekiq"]
+	path = sidekiq
+	url = https://github.com/brainyatom/opsworks-sidekiq.git
